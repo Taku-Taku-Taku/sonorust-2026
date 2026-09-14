@@ -21,3 +21,5 @@ tar.workspace = true
 
 [dev-dependencies]
 env_logger.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
