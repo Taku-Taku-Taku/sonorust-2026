@@ -1,7 +1,10 @@
 use std::{
     collections::HashMap,
     path::PathBuf,
-    sync::{LazyLock, RwLock, RwLockReadGuard},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        LazyLock, RwLock, RwLockReadGuard,
+    },
 };
 
 use tokio::{
@@ -17,6 +20,12 @@ const BEPENG_DIC_URL: &str =
 static TRANS_DICT_MAP: LazyLock<RwLock<HashMap<String, String>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
+// 同時に初期化されると、書き込み途中の辞書を読んでしまうため直列化する
+static INIT_DIC_LOCK: LazyLock<tokio::sync::Mutex<()>> =
+    LazyLock::new(|| tokio::sync::Mutex::new(()));
+
+static TEMPFILE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
 pub struct EngToKana<'a> {
     dict_data: RwLockReadGuard<'a, HashMap<String, String>>,
 }
@@ -29,13 +38,27 @@ impl EngToKana<'_> {
         let download_to_path: PathBuf = download_to_path.into();
         let bepeng_dic_path = download_to_path.join("bep-eng.dic");
 
+        let _guard = INIT_DIC_LOCK.lock().await;
+
         // ダウンロードされていない場合のみダウンロードする
         if !bepeng_dic_path.exists() {
             let response = reqwest::get(BEPENG_DIC_URL).await?;
             let bytes = response.bytes().await?;
 
-            let mut buffer = File::create(&bepeng_dic_path).await?;
+            // 書き込み途中のファイルが読まれないように、
+            // 一時ファイルに書き込んでから rename する
+            let tempfile_path = download_to_path.join(format!(
+                "bep-eng.dic.{}.{}.tmp",
+                std::process::id(),
+                TEMPFILE_COUNTER.fetch_add(1, Ordering::Relaxed),
+            ));
+
+            let mut buffer = File::create(&tempfile_path).await?;
             buffer.write_all(&bytes).await?;
+            buffer.flush().await?;
+            drop(buffer);
+
+            tokio::fs::rename(&tempfile_path, &bepeng_dic_path).await?;
         }
 
         let mut bepeng_dic = File::open(bepeng_dic_path).await?;
