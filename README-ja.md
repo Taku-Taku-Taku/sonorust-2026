@@ -2,6 +2,10 @@
 
 # sonorust
 
+> このリポジトリは [aq2r/sonorust](https://github.com/aq2r/sonorust) のメンテナンス fork です。
+> Discord の音声 E2E 暗号化 (DAVE プロトコル) が 2026 年から必須になったため、
+> songbird 0.6 / serenity 0.12.5 へ更新して VC へ接続できる状態を維持しています。
+
 [litagin02/Style-Bert-VITS2](https://github.com/litagin02/Style-Bert-VITS2) の `server_fastapi.py`
 
 または [tuna2134/sbv2-api](https://github.com/tuna2134/sbv2-api) の sbv2_core を利用して読み上げができる Discord bot。
@@ -25,6 +29,31 @@ Download: [Releases](https://github.com/aq2r/sonorust/releases)
 [^1]: Speaker, Style の切り替えは litagin02/Style-Bert-VITS2 のみ対応
 [^2]: Windows のみ対応、また Windows 以外は動作未確認
 [^3]: 英語はGoogle Translate, DeepL Translate を利用しています。
+
+## ビルド方法
+
+Rust 1.83 以降が必要です。
+
+音声処理に使用している [songbird](https://github.com/serenity-rs/songbird) は libopus の FFI (opus2) に依存しているため、
+ビルドには以下のいずれかが必要です。
+
+- Linux: `libopus-dev` (Ubuntu/Debian) もしくは `opus` (Arch) と `pkg-config`
+- Linux でシステムの libopus を使わない場合 / Windows / macOS: `cmake` と C コンパイラ (ソースから libopus をビルドします)
+
+```sh
+# Ubuntu/Debian の例
+sudo apt install cmake pkg-config libopus-dev
+cargo build --release
+```
+
+## Discord Developer Portal の設定
+
+Bot には以下の Privileged Gateway Intents が必要です。
+
+- SERVER MEMBERS INTENT
+- MESSAGE CONTENT INTENT
+
+(PRESENCE INTENT は使用していないため、オンにする必要はありません)
 
 ## 使用方法と機能解説
 

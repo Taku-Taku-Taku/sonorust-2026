@@ -1,6 +1,11 @@
 English (Used Google or DeepL translate) | [日本語](./README-ja.md)
 
 # sonorust
+
+> This repository is a maintenance fork of [aq2r/sonorust](https://github.com/aq2r/sonorust).
+> Discord made its end-to-end voice encryption (the DAVE protocol) mandatory in 2026,
+> so the bot has been updated to songbird 0.6 / serenity 0.12.5 to keep voice connections working.
+
 A Discord bot that can read aloud using `server_fastapi.py`
 
 [litagin02/Style-Bert-VITS2](https://github.com/litagin02/Style-Bert-VITS2) or sbv2_core from [tuna2134/sbv2-api](https://github.com/tuna2134/sbv2-api).
@@ -24,6 +29,31 @@ Download: [Releases](https://github.com/aq2r/sonorust/releases)
 [^1]: Speaker and Style switching is only supported by litagin02/Style-Bert-VITS2
 [^2]: Only supported by Windows, operation not confirmed on other platforms
 [^3]: Google Translate and DeepL Translate are used for English.
+
+## Building
+
+Rust 1.83 or later is required.
+
+[songbird](https://github.com/serenity-rs/songbird), used for voice, depends on libopus through `opus2`,
+so you need one of the following:
+
+- Linux: `libopus-dev` (Ubuntu/Debian) or `opus` (Arch) plus `pkg-config`
+- Without a system libopus / Windows / macOS: `cmake` and a C compiler (libopus is built from source)
+
+```sh
+# Ubuntu/Debian
+sudo apt install cmake pkg-config libopus-dev
+cargo build --release
+```
+
+## Discord Developer Portal settings
+
+The bot requires these privileged gateway intents:
+
+- SERVER MEMBERS INTENT
+- MESSAGE CONTENT INTENT
+
+(PRESENCE INTENT is not used and does not need to be enabled.)
 
 ## How to use and feature explanation
 
