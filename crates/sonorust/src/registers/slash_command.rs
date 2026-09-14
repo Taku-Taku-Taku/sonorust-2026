@@ -9,12 +9,13 @@ use serenity::all::{
 };
 
 use crate::{
-    commands, Handler,
     _langrustang_autogen::Lang,
+    commands,
     crate_extensions::{
         infer_api::InferApiExt, rwlock::RwLockExt, sonorust_setting::SettingJsonExt,
     },
     errors::SonorustError,
+    Handler,
 };
 
 pub async fn slash_command(

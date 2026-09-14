@@ -8,7 +8,7 @@ use serenity::all::{
 use sonorust_db::UserData;
 
 use crate::{
-    Handler, _langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt, errors::SonorustError,
+    _langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt, errors::SonorustError, Handler,
 };
 
 pub async fn style(
@@ -24,7 +24,7 @@ pub async fn style(
             Either::Right(rust_client) => get_rust_styles(handler, rust_client, userdata),
         }
     };
-    
+
     let embed = {
         let content = style_names
             .iter()

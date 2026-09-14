@@ -3,10 +3,10 @@ use serenity::all::{ComponentInteraction, Context, CreateQuickModal, ModalIntera
 use sonorust_db::{GuildData, GuildDataMut};
 
 use crate::{
+    _langrustang_autogen::Lang,
     crate_extensions::{serenity::SerenityHttpExt, sonorust_setting::SettingJsonExt},
     errors::SonorustError,
     Handler,
-    _langrustang_autogen::Lang,
 };
 
 pub async fn dict_add(

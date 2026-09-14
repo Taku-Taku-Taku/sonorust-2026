@@ -7,7 +7,9 @@ use serenity::all::{
 };
 use sonorust_db::UserData;
 
-use crate::{Handler, _langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt, errors::SonorustError};
+use crate::{
+    _langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt, errors::SonorustError, Handler,
+};
 
 pub async fn speaker(
     handler: &Handler,
@@ -24,7 +26,7 @@ pub async fn speaker(
             Either::Right(rust_client) => get_rust_speakers(handler, rust_client, userdata),
         }
     };
-    
+
     let embed = {
         let content = speaker_names
             .iter()
@@ -99,7 +101,9 @@ fn get_rust_speakers(
     rust_client: &Sbv2RustClient,
     userdata: UserData,
 ) -> (String, Vec<String>, bool) {
-    let default_model = handler.setting_json.with_read(|lock| lock.default_model.clone());
+    let default_model = handler
+        .setting_json
+        .with_read(|lock| lock.default_model.clone());
     let valid_model = rust_client.get_valid_model(&userdata.model_name, &default_model);
 
     (valid_model.name.clone(), vec!["default".to_string()], false)

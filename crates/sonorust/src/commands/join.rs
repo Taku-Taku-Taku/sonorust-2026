@@ -3,7 +3,7 @@ use std::collections::{HashSet, VecDeque};
 use langrustang::lang_t;
 use serenity::all::{ChannelId, Context, CreateCommand, GuildId, UserId};
 
-use crate::{Handler, _langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt};
+use crate::{_langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt, Handler};
 
 pub async fn join(
     handler: &Handler,

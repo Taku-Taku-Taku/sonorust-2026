@@ -2,8 +2,8 @@ use langrustang::lang_t;
 use serenity::all::{ChannelId, Context, CreateCommand, GuildId, UserId};
 
 use crate::{
-    crate_extensions::sonorust_setting::SettingJsonExt, errors::SonorustError, Handler,
-    _langrustang_autogen::Lang,
+    _langrustang_autogen::Lang, crate_extensions::sonorust_setting::SettingJsonExt,
+    errors::SonorustError, Handler,
 };
 
 pub fn read_remove(

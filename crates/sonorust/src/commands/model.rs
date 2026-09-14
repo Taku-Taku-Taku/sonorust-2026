@@ -6,7 +6,7 @@ use serenity::all::{
     CreateSelectMenuKind, CreateSelectMenuOption,
 };
 
-use crate::{Handler, _langrustang_autogen::Lang};
+use crate::{_langrustang_autogen::Lang, Handler};
 pub async fn model(handler: &Handler, lang: Lang) -> (CreateEmbed, Vec<CreateActionRow>) {
     let (model_names, is_model_26_more) = {
         let client = handler.infer_client.read().await;

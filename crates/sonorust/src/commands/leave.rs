@@ -1,7 +1,7 @@
 use langrustang::lang_t;
 use serenity::all::{Context, CreateCommand, GuildId};
 
-use crate::{Handler, _langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt};
+use crate::{_langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt, Handler};
 
 pub async fn leave(
     handler: &Handler,

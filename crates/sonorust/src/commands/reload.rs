@@ -3,7 +3,7 @@ use either::Either;
 use langrustang::lang_t;
 use serenity::all::{Context, CreateCommand, UserId};
 
-use crate::{Handler, _langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt};
+use crate::{_langrustang_autogen::Lang, crate_extensions::rwlock::RwLockExt, Handler};
 
 pub async fn reload(handler: &Handler, ctx: &Context, user_id: UserId, lang: Lang) -> &'static str {
     let app_owner_id = {

@@ -10,10 +10,10 @@ use serenity::all::{
 use sonorust_db::UserData;
 
 use crate::{
+    _langrustang_autogen::Lang,
     crate_extensions::{rwlock::RwLockExt, sonorust_setting::SettingJsonExt},
     errors::SonorustError,
     Handler,
-    _langrustang_autogen::Lang,
 };
 
 pub async fn move_page(
