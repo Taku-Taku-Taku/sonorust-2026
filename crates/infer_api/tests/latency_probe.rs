@@ -39,8 +39,9 @@ async fn latency_probe() -> anyhow::Result<()> {
         "都会の暮らしに疲れ果て、田舎で憧れのスローライフを始めようとしていた男は、車に轢かれて異世界に転生した。目を覚ますとそこは見知らぬ森の中で、隣には喋る猫が座っていた。",
     ];
 
-    // length: 1.0 は通常速度、0.5 は「長い文章の場合早めに読み上げる」が有効な時の速度
-    for length in [1.0, 0.5] {
+    // length: 1.0 は通常速度、0.7 は「長い文章の場合早めに読み上げる」が有効な時の速度
+    // (0.7 は sonorust の FASTREAD_LENGTH と揃えている)
+    for length in [1.0, 0.7] {
         println!("-- length {length} --");
 
         for text in texts.iter() {

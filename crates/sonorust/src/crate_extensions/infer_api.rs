@@ -17,6 +17,11 @@ use super::rwlock::RwLockExt;
 
 type ArcRwLock<T> = Arc<RwLock<T>>;
 
+/// 「長い文章の場合早めに読み上げる」が有効な時の読み上げの長さ
+///
+/// 1.0 が通常の速度で、小さくするほど早口になる
+const FASTREAD_LENGTH: f64 = 0.7;
+
 pub trait InferApiExt {
     async fn infer_from_user(
         &self,
@@ -130,7 +135,7 @@ impl InferApiExt for TokioRwLock<Either<Sbv2PythonClient, Sbv2RustClient>> {
         if guilddata.options.is_if_long_fastread
             && play_content.chars().count() >= fastread_border as usize
         {
-            userdata.length = 0.5;
+            userdata.length = FASTREAD_LENGTH;
         }
 
         let now = std::time::Instant::now();
