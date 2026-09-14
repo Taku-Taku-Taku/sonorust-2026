@@ -1,6 +1,7 @@
 [package]
 name = "engtokana"
-edition = "2021"
+edition.workspace = true
+rust-version.workspace = true
 publish = false
 
 [dependencies]

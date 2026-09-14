@@ -9,6 +9,11 @@ members = [
 ]
 resolver = "2"
 
+[workspace.package]
+edition = "2021"
+# songbird 0.6 (DAVE support) requires Rust 1.83 or later
+rust-version = "1.83"
+
 [workspace.dependencies]
 engtokana = { path = "crates/engtokana" }
 infer_api = { path = "crates/infer_api" }
@@ -29,13 +34,21 @@ serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.128"
 tokio = { version = "1.41.0", features = ["full"] }
 sqlx = { version = "0.8.3", features = ["runtime-tokio", "sqlite"] }
-reqwest = { version = "0.12.7", features = ["json"] }
+# serenity / songbird と同じく rustls を使う
+# (既定の native-tls だと OpenSSL の開発パッケージがビルドに必要になる)
+reqwest = { version = "0.12.7", default-features = false, features = [
+    "json",
+    "charset",
+    "http2",
+    "rustls-tls",
+] }
 zip = "2.2.2"
 flate2 = "1.0.35"
 tar = "0.4.43"
 symphonia = { version = "0.5.4", features = ["aac", "mp3", "isomp4", "alac"] }
 regex = "1.11.1"
-sbv2_core = { git = "https://github.com/aq2r/sbv2_core", features = [
+# ビルドを再現可能にするため rev を固定
+sbv2_core = { git = "https://github.com/aq2r/sbv2_core", rev = "3b592e2fdbb4be117db60d9fcd8a73f0c0ee172e", features = [
     "dynamic",
     "cuda",
     "cuda_tf32",
@@ -44,7 +57,7 @@ indicatif = "0.17.11"
 uuid = { version = "1.13.1", features = ["v4"] }
 either = "1.13.0"
 
-serenity = { version = "0.12.4", default-features = false, features = [
+serenity = { version = "0.12.5", default-features = false, features = [
     "client",
     "gateway",
     "model",
@@ -54,4 +67,4 @@ serenity = { version = "0.12.4", default-features = false, features = [
     "utils",
     "simd_json",
 ] }
-songbird = { version = "0.4.6", features = ["builtin-queue"] }
+songbird = { version = "0.6.0", features = ["builtin-queue"] }

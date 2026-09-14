@@ -259,7 +259,13 @@ async fn main() {
     loop {
         let bot_token = setting_json.with_read(|lock| lock.bot_token.clone());
 
-        let mut client = Client::builder(&bot_token, GatewayIntents::all())
+        // 必要な intent のみ要求する
+        // (GUILD_PRESENCES は使用しないため、Developer Portal でオンにする必要はない)
+        let intents = GatewayIntents::non_privileged()
+            | GatewayIntents::MESSAGE_CONTENT
+            | GatewayIntents::GUILD_MEMBERS;
+
+        let mut client = Client::builder(&bot_token, intents)
             .event_handler(Handler {
                 setting_json: setting_json.clone(),
                 infer_client: infer_client.clone(),
