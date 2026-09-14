@@ -39,22 +39,26 @@ async fn latency_probe() -> anyhow::Result<()> {
         "都会の暮らしに疲れ果て、田舎で憧れのスローライフを始めようとしていた男は、車に轢かれて異世界に転生した。目を覚ますとそこは見知らぬ森の中で、隣には喋る猫が座っていた。",
     ];
 
-    for (i, text) in texts.iter().enumerate() {
-        let now = Instant::now();
-        let wav = client.infer(text, "", 1.0, "").await?;
-        let elapsed = now.elapsed();
+    // length: 1.0 は通常速度、0.5 は「長い文章の場合早めに読み上げる」が有効な時の速度
+    for length in [1.0, 0.5] {
+        println!("-- length {length} --");
 
-        // 44.1kHz 32bit として音声の長さを求める
-        let audio_secs = (wav.len() * 8) as f64 / (44100.0 * 32.0);
+        for text in texts.iter() {
+            let now = Instant::now();
+            let wav = client.infer(text, "", length, "").await?;
+            let elapsed = now.elapsed();
 
-        println!(
-            "{}回目 | {:>3}文字 | 合成 {:>6.2}秒 | 音声 {:>5.2}秒 | 実時間比 {:.2}x",
-            i + 1,
-            text.chars().count(),
-            elapsed.as_secs_f64(),
-            audio_secs,
-            elapsed.as_secs_f64() / audio_secs,
-        );
+            // 44.1kHz 32bit として音声の長さを求める
+            let audio_secs = (wav.len() * 8) as f64 / (44100.0 * 32.0);
+
+            println!(
+                "{:>3}文字 | 合成 {:>6.2}秒 | 音声 {:>5.2}秒 | 実時間比 {:.2}x",
+                text.chars().count(),
+                elapsed.as_secs_f64(),
+                audio_secs,
+                elapsed.as_secs_f64() / audio_secs,
+            );
+        }
     }
 
     Ok(())
