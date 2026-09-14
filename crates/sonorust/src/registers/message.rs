@@ -354,9 +354,9 @@ async fn other_processing(
     // 読み上げ用に文字を置換する
     let mut text_replace = TextReplace::new(&msg.content);
 
-    text_replace.remove_err();
     text_replace.remove_codeblock();
     text_replace.remove_url();
+    text_replace.remove_markdown();
     text_replace.remove_discord_obj();
 
     text_replace.replace_from_guilddict(&guilddata);
@@ -372,6 +372,9 @@ async fn other_processing(
     }
 
     text_replace.remove_emoji();
+    text_replace.normalize_whitespace();
+    // 空文字になった場合の処理も含むため最後に呼ぶ
+    text_replace.remove_err();
 
     let replaced_text = text_replace.as_string();
 
@@ -436,24 +439,55 @@ impl TextReplace {
             return;
         }
 
-        let re = Regex::new(r"`.*?`").unwrap();
-        self.text = re.replace_all(&self.text, "コード").to_string()
+        static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"`.*?`").expect("Regex Failed"));
+        self.text = RE.replace_all(&self.text, "コード").to_string()
     }
 
     pub fn remove_url(&mut self) {
-        let re = Regex::new(r"https?://[\w/:%#\$&\?\(\)~\.=\+\-]+").unwrap();
-        self.text = re.replace_all(&self.text, "URL").to_string()
+        static RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"https?://[\w/:%#\$&\?\(\)~\.=\+\-]+").expect("Regex Failed")
+        });
+        self.text = RE.replace_all(&self.text, "URL").to_string()
+    }
+
+    /// Discord の装飾記号を、中の文字は残したまま取り除く
+    ///
+    /// 記号をそのまま渡すと読み上げられてしまうため
+    pub fn remove_markdown(&mut self) {
+        // 行頭の引用、見出し、小さい文字
+        static RE_LINE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"(?m)^[ \t]*(?:>>>|>|#{1,3}|-#)[ \t]*").expect("Regex Failed")
+        });
+        // 太字、斜体、下線、打ち消し線、ネタバレ
+        static RE_MARK: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"\*\*\*|\*\*|__|~~|\|\||\*|_").expect("Regex Failed"));
+
+        self.text = RE_LINE.replace_all(&self.text, "").to_string();
+        self.text = RE_MARK.replace_all(&self.text, "").to_string();
     }
 
     /// チャンネルやメンション、カスタム絵文字などの置換
     pub fn remove_discord_obj(&mut self) {
-        let re = Regex::new(r"<.*?>").unwrap();
-        self.text = re.replace_all(&self.text, "").to_string()
+        static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<.*?>").expect("Regex Failed"));
+        self.text = RE.replace_all(&self.text, "").to_string()
     }
 
+    /// 絵文字や、読み上げられない制御文字などを取り除く
+    ///
+    /// 句読点や空白は読み上げの区切りに必要なため残す
     pub fn remove_emoji(&mut self) {
-        let re = Regex::new(r"[^\p{L}\p{N}\p{Pd}\p{Sm}\p{Sc}]").unwrap();
-        self.text = re.replace_all(&self.text, "").to_string()
+        // So: 絵文字などの記号, Sk: 修飾記号 (肌の色など), Cf: 書式制御文字 (ZWJ など),
+        // Me: 囲み記号 (キーキャップ), Co: 私用領域, FE00-FE0F: 異体字セレクタ
+        static RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"[\p{So}\p{Sk}\p{Cf}\p{Me}\p{Co}\u{FE00}-\u{FE0F}]").expect("Regex Failed")
+        });
+        self.text = RE.replace_all(&self.text, "").to_string()
+    }
+
+    /// 連続する空白や改行をひとつの空白にまとめる
+    pub fn normalize_whitespace(&mut self) {
+        static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").expect("Regex Failed"));
+        self.text = RE.replace_all(&self.text, " ").trim().to_string()
     }
 
     /// 指定したサーバー辞書をもとに置換する
@@ -502,5 +536,131 @@ impl TextReplace {
         if self.text.is_empty() {
             self.text = String::from("-");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TextReplace;
+
+    fn apply<F>(text: &str, f: F) -> String
+    where
+        F: FnOnce(&mut TextReplace),
+    {
+        let mut text_replace = TextReplace::new(text);
+        f(&mut text_replace);
+        text_replace.as_string()
+    }
+
+    /// 読み上げ前に通る置換をまとめて適用する (辞書と英語変換を除く)
+    fn pipeline(text: &str) -> String {
+        apply(text, |t| {
+            t.remove_codeblock();
+            t.remove_url();
+            t.remove_markdown();
+            t.remove_discord_obj();
+            t.remove_emoji();
+            t.normalize_whitespace();
+            t.remove_err();
+        })
+    }
+
+    #[test]
+    fn test_remove_codeblock() {
+        assert_eq!(
+            apply("```rust\nfn main() {}\n```", |t| t.remove_codeblock()),
+            "コードブロック"
+        );
+        assert_eq!(
+            apply("これは `let a = 1;` です", |t| t.remove_codeblock()),
+            "これは コード です"
+        );
+    }
+
+    #[test]
+    fn test_remove_url() {
+        assert_eq!(
+            apply("見て https://example.com/a?b=1 これ", |t| t
+                .remove_url()),
+            "見て URL これ"
+        );
+    }
+
+    #[test]
+    fn test_remove_markdown() {
+        assert_eq!(apply("**太字**です", |t| t.remove_markdown()), "太字です");
+        assert_eq!(apply("~~打ち消し~~", |t| t.remove_markdown()), "打ち消し");
+        assert_eq!(apply("||ネタバレ||", |t| t.remove_markdown()), "ネタバレ");
+        assert_eq!(apply("> 引用文", |t| t.remove_markdown()), "引用文");
+        assert_eq!(apply("# 見出し", |t| t.remove_markdown()), "見出し");
+    }
+
+    #[test]
+    fn test_remove_discord_obj() {
+        assert_eq!(
+            apply("<@123> おはよう", |t| t.remove_discord_obj()),
+            " おはよう"
+        );
+    }
+
+    #[test]
+    fn test_remove_emoji() {
+        assert_eq!(apply("😀 たのしい 🎉", |t| t.remove_emoji()), " たのしい ");
+        // ZWJ や肌の色の指定を含む絵文字も取り除く
+        assert_eq!(
+            apply("👨‍👩‍👧 かぞく 👍🏽", |t| t
+                .remove_emoji()),
+            " かぞく "
+        );
+    }
+
+    /// 句読点や空白は読み上げの区切りに必要なため、消してはいけない
+    #[test]
+    fn test_remove_emoji_keeps_punctuation() {
+        let text = "こんにちは、元気ですか？ はい!";
+        assert_eq!(apply(text, |t| t.remove_emoji()), text);
+    }
+
+    #[test]
+    fn test_normalize_whitespace() {
+        assert_eq!(
+            apply("おはよう\nおやすみ", |t| t.normalize_whitespace()),
+            "おはよう おやすみ"
+        );
+        assert_eq!(apply("  a   b  ", |t| t.normalize_whitespace()), "a b");
+    }
+
+    #[test]
+    fn test_remove_err() {
+        assert_eq!(apply("あっーーー", |t| t.remove_err()), "あっ");
+        // ～ は ー に変換され、先頭の ー は取り除かれる
+        assert_eq!(apply("～ですね", |t| t.remove_err()), "ですね");
+        assert_eq!(apply("それ～ですね", |t| t.remove_err()), "それーですね");
+        assert_eq!(apply("", |t| t.remove_err()), "-");
+    }
+
+    #[test]
+    fn test_pipeline_keeps_punctuation_and_spaces() {
+        assert_eq!(
+            pipeline("こんにちは、元気ですか？"),
+            "こんにちは、元気ですか？"
+        );
+        assert_eq!(
+            pipeline("hello world how are you"),
+            "hello world how are you"
+        );
+        assert_eq!(
+            pipeline("えっ、まじで!? やばい。"),
+            "えっ、まじで!? やばい。"
+        );
+    }
+
+    #[test]
+    fn test_pipeline_removes_noise() {
+        assert_eq!(pipeline("**やった** 🎉"), "やった");
+        assert_eq!(pipeline("<@123> おはよう"), "おはよう");
+        assert_eq!(pipeline("見て https://example.com これ"), "見て URL これ");
+        // 読み上げる中身が無くなった場合
+        assert_eq!(pipeline("😀"), "-");
     }
 }
