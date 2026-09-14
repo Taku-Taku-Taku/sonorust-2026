@@ -67,6 +67,9 @@ sbv2-api: https://github.com/tuna2134/sbv2-api
 
 (This text-to-speech BOT uses a modified version of the core part of sbv2-api: https://github.com/aq2r/sbv2_core )
 
+It is vendored into this repository as `crates/sbv2_core`. See
+[crates/sbv2_core/README.md](./crates/sbv2_core/README.md) for the changes made after vendoring.
+
 #
 
 #### Lisense

@@ -4400,7 +4400,6 @@ dependencies = [
 [[package]]
 name = "sbv2_core"
 version = "0.1.0"
-source = "git+https://github.com/aq2r/sbv2_core?rev=3b592e2fdbb4be117db60d9fcd8a73f0c0ee172e#3b592e2fdbb4be117db60d9fcd8a73f0c0ee172e"
 dependencies = [
  "hound",
  "jpreprocess",

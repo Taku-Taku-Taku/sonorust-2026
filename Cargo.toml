@@ -2,6 +2,7 @@
 members = [
     "crates/engtokana",
     "crates/infer_api",
+    "crates/sbv2_core",
     "crates/sonorust",
     "crates/sonorust_db",
     "crates/sonorust_logger",
@@ -47,8 +48,8 @@ flate2 = "1.0.35"
 tar = "0.4.43"
 symphonia = { version = "0.5.4", features = ["aac", "mp3", "isomp4", "alac"] }
 regex = "1.11.1"
-# ビルドを再現可能にするため rev を固定
-sbv2_core = { git = "https://github.com/aq2r/sbv2_core", rev = "3b592e2fdbb4be117db60d9fcd8a73f0c0ee172e", features = [
+# aq2r/sbv2_core を crates/sbv2_core に取り込んで使用している
+sbv2_core = { path = "crates/sbv2_core", features = [
     "dynamic",
     "cuda",
     "cuda_tf32",
