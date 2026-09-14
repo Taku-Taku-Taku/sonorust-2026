@@ -2179,11 +2179,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "env_logger",
+ "flate2",
  "indicatif",
  "log",
  "reqwest",
  "sbv2_core",
  "serde_json",
+ "tar",
  "thiserror 2.0.20",
  "tokio",
  "uuid",

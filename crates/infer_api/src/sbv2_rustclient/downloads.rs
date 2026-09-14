@@ -159,7 +159,51 @@ impl Sbv2RustDownloads {
         Ok(())
     }
 
-    /// windowsのみに対応 (実行は可)
+    async fn extract_targz<P>(&self, targz_path: P, output_dir: P) -> anyhow::Result<()>
+    where
+        P: AsRef<Path>,
+    {
+        let targz_pathbuf = targz_path.as_ref().to_owned();
+        let output_dir = output_dir.as_ref().to_owned();
+
+        let arc = self.multi_progress.clone();
+
+        tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
+            let targz_file = std::fs::File::open(targz_pathbuf)?;
+            let mut archive = tar::Archive::new(flate2::read::GzDecoder::new(targz_file));
+
+            // spinner
+            let spinner = arc.add(ProgressBar::new_spinner());
+
+            spinner.set_style(
+                ProgressStyle::default_spinner()
+                    .template("{spinner:.green} {msg}")
+                    .unwrap()
+                    .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"),
+            );
+            spinner.set_message("TarGz extracting...");
+            spinner.enable_steady_tick(Duration::from_millis(50));
+
+            std::fs::create_dir_all(&output_dir)?;
+            archive.unpack(&output_dir)?;
+
+            spinner.set_style(
+                ProgressStyle::default_spinner()
+                    .template("✔ TarGz extracted.")
+                    .unwrap(),
+            );
+            spinner.finish();
+
+            Ok(())
+        })
+        .await??;
+
+        tokio::fs::remove_file(targz_path).await?;
+
+        Ok(())
+    }
+
+    /// x86_64 の Windows と Linux に対応
     pub async fn download_and_set_onnxruntime<P>(
         &self,
         download_to_folder: P,
@@ -169,48 +213,70 @@ impl Sbv2RustDownloads {
         P: AsRef<Path>,
     {
         let download_to_folder = download_to_folder.as_ref();
+
         let is_x86_win = cfg!(target_os = "windows") && cfg!(target_arch = "x86_64");
+        let is_x86_linux = cfg!(target_os = "linux") && cfg!(target_arch = "x86_64");
 
-        let download_url = match is_gpu_version {
-            true if is_x86_win => "https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-win-x64-gpu-1.20.1.zip",
-            false if is_x86_win => "https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-win-x64-1.20.1.zip",
+        // (ダウンロード元, 展開後のフォルダ名, 動的ライブラリのフォルダ内での位置)
+        let (download_url, extracted_dir_name, dylib_relative_path) =
+            match (is_x86_win, is_x86_linux, is_gpu_version) {
+                (true, _, false) => (
+                    "https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-win-x64-1.20.1.zip",
+                    "onnxruntime-win-x64-1.20.1",
+                    "lib/onnxruntime.dll",
+                ),
+                (true, _, true) => (
+                    "https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-win-x64-gpu-1.20.1.zip",
+                    "onnxruntime-win-x64-gpu-1.20.1",
+                    "lib/onnxruntime.dll",
+                ),
+                (_, true, false) => (
+                    "https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-x64-1.20.1.tgz",
+                    "onnxruntime-linux-x64-1.20.1",
+                    "lib/libonnxruntime.so",
+                ),
+                (_, true, true) => (
+                    "https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-x64-gpu-1.20.1.tgz",
+                    "onnxruntime-linux-x64-gpu-1.20.1",
+                    "lib/libonnxruntime.so",
+                ),
 
-            _ => bail!("Not Supported Os"),
-        };
+                _ => bail!("Not Supported Os"),
+            };
 
-        let ort_dylib_folder_path = match is_gpu_version {
-            true => download_to_folder.join("ONNXRuntime/onnxruntime-win-x64-gpu-1.20.1"),
-            false => download_to_folder.join("ONNXRuntime/onnxruntime-win-x64-1.20.1"),
-        };
-
-        let path = download_to_folder.join("download-onnxruntime");
-
-        let output_path = path
-            .parent()
-            .ok_or_else(|| anyhow!("Parent is None"))?
-            .join("ONNXRuntime");
+        let output_path = download_to_folder.join("ONNXRuntime");
+        let ort_dylib_folder_path = output_path.join(extracted_dir_name);
+        let archive_path = download_to_folder.join("download-onnxruntime");
 
         // 存在しない場合のみダウンロード
         if !ort_dylib_folder_path.exists() {
-            self.download_file("ONNXRuntime", download_url, &path)
+            self.download_file("ONNXRuntime", download_url, &archive_path)
                 .await?;
 
-            if is_x86_win {
-                self.extract_zip(path.as_path(), output_path.as_path())
-                    .await?;
+            match is_x86_win {
+                true => {
+                    self.extract_zip(archive_path.as_path(), output_path.as_path())
+                        .await?
+                }
+                false => {
+                    self.extract_targz(archive_path.as_path(), output_path.as_path())
+                        .await?
+                }
             }
         }
 
         // 環境変数に設定
-        if is_x86_win {
-            let ort_dylib_str = std::env::current_dir()?
-                .join(ort_dylib_folder_path)
-                .join("lib/onnxruntime.dll")
-                .to_string_lossy()
-                .replace("\\", "/");
+        let ort_dylib_str = std::env::current_dir()?
+            .join(&ort_dylib_folder_path)
+            .join(dylib_relative_path)
+            .to_string_lossy()
+            .replace("\\", "/");
 
-            std::env::set_var("ORT_DYLIB_PATH", ort_dylib_str);
+        if !Path::new(&ort_dylib_str).exists() {
+            bail!("ONNXRuntime library not found: {ort_dylib_str}");
         }
+
+        std::env::set_var("ORT_DYLIB_PATH", ort_dylib_str);
 
         Ok(())
     }

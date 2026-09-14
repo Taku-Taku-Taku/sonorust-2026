@@ -133,10 +133,19 @@ impl InferApiExt for TokioRwLock<Either<Sbv2PythonClient, Sbv2RustClient>> {
             userdata.length = 0.5;
         }
 
+        let now = std::time::Instant::now();
+
         let audio_data = handler
             .infer_client
             .infer_from_user(play_content, userdata, &handler.setting_json)
             .await?;
+
+        log::debug!(
+            "Inferred: {:?} ({} chars, {} bytes)",
+            now.elapsed(),
+            play_content.chars().count(),
+            audio_data.len(),
+        );
         // ------
 
         // そのチャンネルのqueueに音声データを追加する
