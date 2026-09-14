@@ -46,6 +46,20 @@ sudo apt install cmake pkg-config libopus-dev
 cargo build --release
 ```
 
+## モデルの準備 (tuna2134/sbv2-api を使う場合)
+
+音声モデル (`.sbv2`) はリポジトリに含まれていないため、各自で用意して `sbv2api_models/` に置いてください。
+
+- つくよみちゃん: [neody/sbv2-api-assets](https://huggingface.co/neody/sbv2-api-assets/tree/main/model) の `tsukuyomi.sbv2` (231MB)
+- あみたろ: [tuna2134/sbv2-amitaro](https://huggingface.co/tuna2134/sbv2-amitaro/tree/main/models)
+
+`deberta.onnx`、`tokenizer.json`、ONNXRuntime は起動時に自動でダウンロードされます (合計 1.3GB 程度)。
+
+配布されているモデルには古い形式 (`version.txt` = `1`) のものがありますが、そのまま利用できます
+([crates/sbv2_core/README.md](./crates/sbv2_core/README.md) を参照)。
+
+モデルごとに利用規約が異なるため、配布元の規約を確認してください。
+
 ## Discord Developer Portal の設定
 
 Bot には以下の Privileged Gateway Intents が必要です。
